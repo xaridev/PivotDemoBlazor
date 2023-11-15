@@ -1,0 +1,260 @@
+﻿@page "/"
+@using PivotDemoBlazor.Data;
+
+@if (GridData == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div @ref=@popupTarget></div>
+    <DxButton RenderStyle="ButtonRenderStyle.None"
+              Attributes="@(new Dictionary<string, object> {  ["title"] = "Chooser fields." })"
+              CssClass="border mb-3"
+              IconCssClass="oi oi-cog"
+              Click="@TogglePopupVisibilityAsync" />
+
+    <DxPivotGrid Data="@GridData" CssClass="w-100" @ref=pivotRef @key="myKey">
+
+        @foreach (var item in RowFields)
+        {
+            <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Row" />
+        }
+        @foreach (var item in ColumnFields)
+        {
+            <DxPivotGridField Field="@item.NameField" GroupInterval="PivotGridGroupInterval.Year" Area="PivotGridFieldArea.Column" Caption="@item.NameField" />
+            <DxPivotGridField Field="@item.NameField" GroupInterval="PivotGridGroupInterval.Quarter" Area="PivotGridFieldArea.Column" Caption="Quarter">
+                <HeaderTemplate>@string.Format("Q{0}", context)</HeaderTemplate>
+            </DxPivotGridField>
+        }
+        @foreach(var item in SummaryFields)
+        {
+            if(item.NameField == "Amount")
+            {
+                <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="PivotGridSummaryType.Sum" />
+            }
+            else
+            {
+                <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="PivotGridSummaryType.Count" />
+            }
+        }
+    </DxPivotGrid>
+}
+
+<DxWindow @ref=windowRef
+          AllowResize="true"
+          ShowCloseButton="true"
+          CloseOnEscape="true"
+          HeaderText="Field Chooser"
+          FooterText="Footer"
+          ShowFooter="true"
+          Width="max(50vw, 500px)"
+          Height="max(80vh, 800px)"
+          MinWidth="300"
+          MinHeight="200"
+          MaxWidth="800"
+          MaxHeight="500"
+@bind-Visible=windowVisible>
+    <BodyContentTemplate>
+        <div class="container-fluid">
+            <div class="row gap-3">
+                <div class="col">
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="oi oi-list"></i>
+                        All Fields
+                    </div>
+                    <DxListBox Data="@DataFields"
+                               TextFieldName="@nameof(DataField.NameField)"
+                               SelectionMode="ListBoxSelectionMode.Multiple"
+                               ShowCheckboxes="true"
+                               CssClass="w-100 mb-3"
+                               Values="@Values"
+                               ValuesChanged="@((IEnumerable<DataField> values) => ValuesChanged(values))">
+                    </DxListBox>
+                </div>
+                <div class="col">
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="oi oi-ellipses"></i>
+                        Row Fields
+                    </div>
+                    <div class="row mb-3 @heightRow border">
+                        <Dropzone Items="RowFields" TItem="DataField" Context="columnContext" OnItemDrop="@((i)=>ItemRowDrop(i))" AllowsDrag="(d)=>{return true;}">
+                            <div class="field-box">@columnContext.NameField</div>
+                        </Dropzone>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="oi oi-grid-four-up"></i>
+                        Column Fields
+                    </div>
+                    <div class="row @heightColumn border">
+                        <Dropzone Items="ColumnFields" TItem="DataField" OnItemDrop="@((i)=> ItemDrop(i))" Context="rowContext" Accepts='(d, t) => d.NameField == "Date"' AllowsDrag='(d)=> { return true;}' InstantReplace="false">
+                            <div class="field-box">@rowContext.NameField</div>
+                        </Dropzone>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="oi oi-calculator"></i>
+                        Summary Fields
+                    </div>
+                    <div class="row @heightSummary border">
+                        <Dropzone Items="SummaryFields" TItem="DataField" OnItemDrop="@((i)=> ItemSummaryDrop(i))" Context="rowContext" AllowsDrag="(d)=>{return true;}" InstantReplace="false">
+                            <div class="field-box">@rowContext.NameField</div>
+                        </Dropzone>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </BodyContentTemplate>
+    <FooterContentTemplate>
+        <DxButton CssClass="popup-button my-1 ms-2" RenderStyle="ButtonRenderStyle.Primary" Text="OK" Click="UpdateUI" />
+        <DxButton CssClass="popup-button my-1 ms-2" RenderStyle="ButtonRenderStyle.Secondary" Text="Cancel" Click="@context.CloseCallback" />
+    </FooterContentTemplate>
+</DxWindow>
+
+@code {
+    IEnumerable<SaleInfo> GridData;
+    IEnumerable<DataField> DataFields;
+    IEnumerable<DataField> Values { get; set; }
+    List<DataField> ColumnFields { get; set; } = new List<DataField>();
+    List<DataField> RowFields { get; set; } = new List<DataField>();
+    List<DataField> GroupFields { get; set; } = new List<DataField>();
+    List<DataField> SummaryFields { get; set; } = new List<DataField>();
+    DxWindow windowRef;
+    DxPivotGrid pivotRef;
+    ElementReference popupTarget;
+    string heightColumn = "h-25";
+    string heightRow = "h-25";
+    string heightGroup = "h-50";
+    string heightSummary = "h-50";
+    bool windowVisible;
+    private bool shouldRender = false;
+    private string myKey = "claveOriginal";
+    protected override async Task OnInitializedAsync()
+    {
+        GenerateFakeData(5);
+        GetFields();
+    }
+    int count = 0;
+    void ItemDrop(DataField i)
+    {
+        heightRow = "h-auto";
+        if (ColumnFields.Count() == 0)
+        {
+            heightColumn = "h-25";
+            heightRow = "h-auto";
+        }
+        StateHasChanged();
+    }
+    void ItemRowDrop(DataField i)
+    {
+        heightSummary = SummaryFields.Count() == 0 ? "h-50" : "h-auto";
+        heightRow = RowFields.Count() == 0 ? "h-25" : "h-auto";
+        StateHasChanged();
+    }
+    void ItemSummaryDrop(DataField i)
+    {
+        heightSummary = SummaryFields.Count() == 0 ? "h-50" : "h-auto";
+        heightRow = RowFields.Count() == 0 ? "h-25" : "h-auto";
+        StateHasChanged();
+    }
+    void GetFields()
+    {
+        DataFields = new List<DataField>(){
+            new DataField(){NameField = "Region" },
+            new DataField(){NameField = "Country"},
+            new DataField(){NameField = "City" },
+            new DataField(){NameField = "Date"},
+            new DataField(){NameField = "Amount" },
+            new DataField(){NameField = "OrderId" }
+        };
+    }
+
+    void ValuesChanged(IEnumerable<DataField> values)
+    {
+        Values = values;
+
+        if (ColumnFields.Count() > 0)
+        {
+            if (ColumnFields.Any(r => !values.Contains(r)))
+            {
+                ColumnFields.RemoveAll(r => !values.Contains(r));
+            }
+        }
+        RowFields.Clear();
+        RowFields.AddRange(values.Where(v => !ColumnFields.Contains(v) && !SummaryFields.Contains(v)));
+
+        GroupFields.Clear();
+        GroupFields.AddRange(values.Where(v => !RowFields.Contains(v)));
+
+        if (SummaryFields.Count() > 0)
+        {
+            if (SummaryFields.Any(r => !values.Contains(r)))
+            {
+                SummaryFields.RemoveAll(r => !values.Contains(r));
+            }
+        }
+
+        if (RowFields.Count() > 0)
+        {
+            heightRow = "h-auto";
+        }
+        else if (RowFields.Count() == 0)
+        {
+            heightRow = "h-25";
+        }
+
+        if (SummaryFields.Count() > 0)
+        {
+            heightSummary = "h-auto";
+        }
+        else if (SummaryFields.Count() == 0)
+        {
+            heightSummary = "h-50";
+        }
+        if (ColumnFields.Count() == 0)
+        {
+            heightColumn = "h-25";
+        }
+
+        StateHasChanged();
+    }
+    async Task UpdateUI()
+    {
+        myKey = Guid.NewGuid().ToString();
+        await windowRef.CloseAsync();
+    }
+    async Task TogglePopupVisibilityAsync(MouseEventArgs args)
+    {
+        if (windowVisible)
+            await windowRef.CloseAsync();
+        else
+            await windowRef.ShowAtAsync(args.ClientX, args.ClientY);
+    }
+    private void GenerateFakeData(int count)
+    {
+        var faker = new Bogus.Faker<SaleInfo>()
+            .RuleFor(s => s.OrderId, f => f.IndexVariable++)
+            .RuleFor(s => s.Region, f => f.Lorem.Word())
+            .RuleFor(s => s.Country, f => f.Address.Country())
+            .RuleFor(s => s.City, f => f.Address.City())
+            .RuleFor(s => s.Amount, f => f.Random.Number(1, 1000))
+            .RuleFor(s => s.Date, f => f.Date.Recent());
+
+        GridData = faker.Generate(count);
+    }
+}
+<style>
+    .field-box {
+        margin: 0.5rem;
+        border-radius: 25px;
+        padding: 0.2rem;
+        background: lightgray;
+    }
+</style>
