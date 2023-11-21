@@ -23,11 +23,11 @@ else
         @foreach (var item in ColumnFields)
         {
             <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Column" Caption="@item.NameField" />
-           
+
         }
-        @foreach(var item in SummaryFields)
+        @foreach (var item in SummaryFields)
         {
-            if(item.NameField == "Amount")
+            if (item.NameField == "Amount")
             {
                 <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="PivotGridSummaryType.Sum" />
             }
@@ -46,10 +46,10 @@ else
           HeaderText="Field Chooser"
           FooterText="Footer"
           ShowFooter="true"
-          Width="max(50vw, 500px)"
-          Height="max(80vh, 800px)"
-          MinWidth="300"
-          MinHeight="200"
+          Width="max(30vw, 300px)"
+          Height="max(40vh, 400px)"
+          MinWidth="400"
+          MinHeight="300"
           MaxWidth="800"
           MaxHeight="500"
 @bind-Visible=windowVisible>
@@ -66,9 +66,9 @@ else
                         <FieldComponent Field="@item" EventCallback1="FieldHandler" />
                     }
                 </div>
-               
+
             </div>
-            
+
         </div>
 
 
@@ -122,15 +122,37 @@ else
         { PivotGridFieldArea.Data, SummaryFields }
     };
 
-        if (fieldAreas.ContainsKey(field.Area))
+        // Check in which area the field is present, if it's already in any list
+        PivotGridFieldArea? currentArea = null;
+        foreach (var areaList in fieldAreas)
         {
-            var areaFields = fieldAreas[field.Area];
-            if (areaFields.All(r => r.NameField != field.NameField))
+            if (areaList.Value.Any(r => r.NameField == field.NameField))
             {
-                areaFields.Add(DataFields.FirstOrDefault(f => f.NameField == field.NameField));
+                currentArea = areaList.Key;
+                break;
             }
         }
+
+        // Move the field to its new list if it's already present
+        if (currentArea != null)
+        {
+            var currentList = fieldAreas[currentArea.Value];
+            var existingField = currentList.FirstOrDefault(r => r.NameField == field.NameField);
+            if (existingField != null)
+            {
+                currentList.Remove(existingField);
+                var targetList = fieldAreas[field.Area];
+                targetList.Add(existingField);
+            }
+        }
+        else
+        {
+            // If the field isn't in any list, add it to the list related to its Area
+            var targetList = fieldAreas[field.Area];
+            targetList.Add(DataFields.FirstOrDefault(f => f.NameField == field.NameField));
+        }
     }
+
 
     void ItemRowDrop(DataField i)
     {

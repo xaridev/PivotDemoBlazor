@@ -1,12 +1,17 @@
 ﻿@using PivotDemoBlazor.Data;
 
-<div class="container">
-    <span>@Field.NameField:</span>
-    <DxRadioGroup Items="@Options"
-                  Value="@OptionSelected"
-                  ValueChanged="(string option) => OptionChanged(option, Field)"
-                  Layout="RadioGroupLayout.Vertical"
-                  CssClass="dx-demo-radio-group" />
+<div class="d-flex align-items-center">
+    <div class="col-2">
+        <span style="font-weight:bolder">@Field.NameField:</span>
+    </div>
+    <div class="col-10">
+        <DxRadioGroup Items="@Options"
+                      Value="@OptionSelected"
+                      ValueChanged="(string option) => OptionChanged(option, Field)"
+                      Layout="RadioGroupLayout.Horizontal"
+                      CssClass="dx-demo-radio-group" />
+    </div>
+    
 </div>
 
 
@@ -20,6 +25,10 @@
     bool IsSummary { get; set; }
     IEnumerable<string> Options = new[] { "Row", "Column", "Data" };
     string OptionSelected { get; set; }
+    protected override void OnParametersSet()
+    {
+        OptionSelected = Field.Area.ToString();
+    }
     void OptionChanged(string arg, DataField field)
     {
         OptionSelected = arg;
