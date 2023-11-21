@@ -9,7 +9,7 @@ else
 {
     <div @ref=@popupTarget></div>
     <DxButton RenderStyle="ButtonRenderStyle.None"
-              Attributes="@(new Dictionary<string, object> {  ["title"] = "Chooser fields." })"
+              Attributes="@(new Dictionary<string, object> {["title"] = "Chooser fields." })"
               CssClass="border mb-3"
               IconCssClass="oi oi-cog"
               Click="@TogglePopupVisibilityAsync" />
@@ -22,10 +22,8 @@ else
         }
         @foreach (var item in ColumnFields)
         {
-            <DxPivotGridField Field="@item.NameField" GroupInterval="PivotGridGroupInterval.Year" Area="PivotGridFieldArea.Column" Caption="@item.NameField" />
-            <DxPivotGridField Field="@item.NameField" GroupInterval="PivotGridGroupInterval.Quarter" Area="PivotGridFieldArea.Column" Caption="Quarter">
-                <HeaderTemplate>@string.Format("Q{0}", context)</HeaderTemplate>
-            </DxPivotGridField>
+            <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Column" Caption="@item.NameField" />
+           
         }
         @foreach(var item in SummaryFields)
         {
@@ -63,51 +61,14 @@ else
                         <i class="oi oi-list"></i>
                         All Fields
                     </div>
-                    <DxListBox Data="@DataFields"
-                               TextFieldName="@nameof(DataField.NameField)"
-                               SelectionMode="ListBoxSelectionMode.Multiple"
-                               ShowCheckboxes="true"
-                               CssClass="w-100 mb-3"
-                               Values="@Values"
-                               ValuesChanged="@((IEnumerable<DataField> values) => ValuesChanged(values))">
-                    </DxListBox>
+                    @foreach (var item in DataFields)
+                    {
+                        <FieldComponent Field="@item" EventCallback1="FieldHandler" />
+                    }
                 </div>
-                <div class="col">
-                    <div class="mb-2 d-flex align-items-center gap-2">
-                        <i class="oi oi-ellipses"></i>
-                        Row Fields
-                    </div>
-                    <div class="row mb-3 @heightRow border">
-                        <Dropzone Items="RowFields" TItem="DataField" Context="columnContext" OnItemDrop="@((i)=>ItemRowDrop(i))" AllowsDrag="(d)=>{return true;}">
-                            <div class="field-box">@columnContext.NameField</div>
-                        </Dropzone>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="mb-2 d-flex align-items-center gap-2">
-                        <i class="oi oi-grid-four-up"></i>
-                        Column Fields
-                    </div>
-                    <div class="row @heightColumn border">
-                        <Dropzone Items="ColumnFields" TItem="DataField" OnItemDrop="@((i)=> ItemDrop(i))" Context="rowContext" Accepts='(d, t) => d.NameField == "Date"' AllowsDrag='(d)=> { return true;}' InstantReplace="false">
-                            <div class="field-box">@rowContext.NameField</div>
-                        </Dropzone>
-                    </div>
-                </div>
+               
             </div>
-            <div class="row">
-                <div class="col">
-                    <div class="mb-2 d-flex align-items-center gap-2">
-                        <i class="oi oi-calculator"></i>
-                        Summary Fields
-                    </div>
-                    <div class="row @heightSummary border">
-                        <Dropzone Items="SummaryFields" TItem="DataField" OnItemDrop="@((i)=> ItemSummaryDrop(i))" Context="rowContext" AllowsDrag="(d)=>{return true;}" InstantReplace="false">
-                            <div class="field-box">@rowContext.NameField</div>
-                        </Dropzone>
-                    </div>
-                </div>
-            </div>
+            
         </div>
 
 
@@ -152,6 +113,25 @@ else
         }
         StateHasChanged();
     }
+    void FieldHandler(DataField field)
+    {
+        Dictionary<PivotGridFieldArea, List<DataField>> fieldAreas = new Dictionary<PivotGridFieldArea, List<DataField>>
+    {
+        { PivotGridFieldArea.Row, RowFields },
+        { PivotGridFieldArea.Column, ColumnFields },
+        { PivotGridFieldArea.Data, SummaryFields }
+    };
+
+        if (fieldAreas.ContainsKey(field.Area))
+        {
+            var areaFields = fieldAreas[field.Area];
+            if (areaFields.All(r => r.NameField != field.NameField))
+            {
+                areaFields.Add(DataFields.FirstOrDefault(f => f.NameField == field.NameField));
+            }
+        }
+    }
+
     void ItemRowDrop(DataField i)
     {
         heightSummary = SummaryFields.Count() == 0 ? "h-50" : "h-auto";

@@ -1,0 +1,37 @@
+﻿@using PivotDemoBlazor.Data;
+
+<div class="container">
+    <span>@Field.NameField:</span>
+    <DxRadioGroup Items="@Options"
+                  Value="@OptionSelected"
+                  ValueChanged="(string option) => OptionChanged(option, Field)"
+                  Layout="RadioGroupLayout.Vertical"
+                  CssClass="dx-demo-radio-group" />
+</div>
+
+
+
+
+@code {
+    [Parameter] public DataField Field { get; set; }
+    [Parameter] public EventCallback<DataField> EventCallback1 { get; set; }
+    bool IsRow { get; set; }
+    bool IsColumn { get; set; }
+    bool IsSummary { get; set; }
+    IEnumerable<string> Options = new[] { "Row", "Column", "Data" };
+    string OptionSelected { get; set; }
+    void OptionChanged(string arg, DataField field)
+    {
+        OptionSelected = arg;
+        Field.Area = (PivotGridFieldArea)Enum.Parse(typeof(PivotGridFieldArea), arg);
+        EventCallback1.InvokeAsync(Field);
+    }
+    string GetLegendCssClass(SizeMode sizeMode)
+    {
+        var result = "dx-demo-radio-group-label";
+        if (sizeMode != SizeMode.Medium)
+            result += sizeMode == SizeMode.Large ? " dx-demo-large" : " dx-demo-small";
+        return result;
+    }
+}
+
