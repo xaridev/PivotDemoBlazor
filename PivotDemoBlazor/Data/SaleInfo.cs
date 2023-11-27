@@ -18,5 +18,6 @@
     {
         public string NameField { get; set; }
         public PivotGridFieldArea Area { get; set; }
+        public PivotGridSummaryType SummaryType { get; set; }
     }
 }

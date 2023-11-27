@@ -27,13 +27,9 @@ else
         }
         @foreach (var item in SummaryFields)
         {
-            if (item.NameField == "Amount")
+            if (item.Area == PivotGridFieldArea.Data)
             {
-                <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="PivotGridSummaryType.Sum" />
-            }
-            else
-            {
-                <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="PivotGridSummaryType.Count" />
+                <DxPivotGridField Field="@item.NameField" Area="PivotGridFieldArea.Data" SummaryType="@item.SummaryType" />
             }
         }
     </DxPivotGrid>
@@ -46,7 +42,7 @@ else
           HeaderText="Field Chooser"
           FooterText="Footer"
           ShowFooter="true"
-          Width="max(30vw, 300px)"
+          Width="max(40vw, 400px)"
           Height="max(40vh, 400px)"
           MinWidth="400"
           MinHeight="300"
@@ -127,7 +123,9 @@ else
         {
             SummaryFields.Remove(field);
         }
-        DataFields.FirstOrDefault(f=>f.NameField == field.NameField).Area = 0;
+        var deselectedField = DataFields.FirstOrDefault(f => f.NameField == field.NameField);
+        deselectedField.Area = 0;
+        deselectedField.SummaryType = 0;
         StateHasChanged();
     }
     void FieldHandler(DataField field)
