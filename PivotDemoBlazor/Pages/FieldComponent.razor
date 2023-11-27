@@ -4,14 +4,18 @@
     <div class="col-2">
         <span style="font-weight:bolder">@Field.NameField:</span>
     </div>
-    <div class="col-10">
+    <div class="col-8">
         <DxRadioGroup Items="@Options"
                       Value="@OptionSelected"
                       ValueChanged="(string option) => OptionChanged(option, Field)"
                       Layout="RadioGroupLayout.Horizontal"
                       CssClass="dx-demo-radio-group" />
     </div>
-    
+    <div class="col-2">
+        <DxButton RenderStyle="ButtonRenderStyle.Secondary" 
+        RenderStyleMode="ButtonRenderStyleMode.Text"
+        Text="Deselect" Click="DeselectAction" />
+    </div>
 </div>
 
 
@@ -20,12 +24,13 @@
 @code {
     [Parameter] public DataField Field { get; set; }
     [Parameter] public EventCallback<DataField> EventCallback1 { get; set; }
+    [Parameter] public EventCallback<DataField> DeselectCallback { get; set; }
     bool IsRow { get; set; }
     bool IsColumn { get; set; }
     bool IsSummary { get; set; }
     IEnumerable<string> Options = new[] { "Row", "Column", "Data" };
     string OptionSelected { get; set; }
-    protected override void OnParametersSet()
+    protected override void OnInitialized()
     {
         OptionSelected = Field.Area.ToString();
     }
@@ -34,6 +39,12 @@
         OptionSelected = arg;
         Field.Area = (PivotGridFieldArea)Enum.Parse(typeof(PivotGridFieldArea), arg);
         EventCallback1.InvokeAsync(Field);
+    }
+    void DeselectAction()
+    {
+        OptionSelected = string.Empty;
+        StateHasChanged();
+        DeselectCallback.InvokeAsync(Field);
     }
     string GetLegendCssClass(SizeMode sizeMode)
     {

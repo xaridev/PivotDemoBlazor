@@ -63,7 +63,7 @@ else
                     </div>
                     @foreach (var item in DataFields)
                     {
-                        <FieldComponent Field="@item" EventCallback1="FieldHandler" />
+                        <FieldComponent Field="@item" EventCallback1="FieldHandler" DeselectCallback="DeseclectFieldHandler" />
                     }
                 </div>
 
@@ -111,6 +111,23 @@ else
             heightColumn = "h-25";
             heightRow = "h-auto";
         }
+        StateHasChanged();
+    }
+    void DeseclectFieldHandler(DataField field)
+    {
+        if(RowFields.Any(r=>r.NameField == field.NameField))
+        {
+            RowFields.Remove(field);
+        }
+        else if (ColumnFields.Any(r => r.NameField == field.NameField))
+        {
+            ColumnFields.Remove(field);
+        }
+        else if(SummaryFields.Any(r => r.NameField == field.NameField))
+        {
+            SummaryFields.Remove(field);
+        }
+        DataFields.FirstOrDefault(f=>f.NameField == field.NameField).Area = 0;
         StateHasChanged();
     }
     void FieldHandler(DataField field)
